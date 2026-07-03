@@ -3,8 +3,9 @@ import { getEventBySlug } from '@/lib/firestore/events';
 import { Calendar, Users, Clock, AlertCircle } from 'lucide-react';
 import Link from 'next/link';
 
-// NOTE: RegistrationButton will be added in Step 7
-// import RegistrationButton from '@/components/events/RegistrationButton';
+import RegistrationButton from '@/components/events/RegistrationButton';
+import { getSession } from '@/lib/auth';
+import { getRegistration, getRegistrationId } from '@/lib/firestore/registrations';
 
 interface EventPageProps {
   params: Promise<{
@@ -18,6 +19,14 @@ export default async function EventDetailPage({ params }: EventPageProps) {
 
   if (!event) {
     notFound();
+  }
+
+  const session = await getSession();
+  
+  let userRegistration = null;
+  if (session) {
+    const regId = getRegistrationId(event.id, session.uid);
+    userRegistration = await getRegistration(regId);
   }
 
   const isFull = event.registeredCount >= event.capacity;
@@ -90,10 +99,13 @@ export default async function EventDetailPage({ params }: EventPageProps) {
                 </div>
 
                 <div className="pt-6 border-t border-gray-200">
-                  {/* RegistrationButton component will go here in Step 7 */}
-                  <div className="w-full bg-blue-100 text-blue-800 text-center py-4 rounded-xl font-medium border border-blue-200 shadow-inner">
-                    [Registration Component Placeholder]
-                  </div>
+                  <RegistrationButton 
+                    eventId={event.id}
+                    isFull={isFull}
+                    isPastDeadline={isPastDeadline}
+                    initialRegistration={userRegistration}
+                    isSignedIn={!!session}
+                  />
                 </div>
               </div>
             </div>
