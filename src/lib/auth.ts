@@ -11,21 +11,14 @@ export type SessionData = {
 // In a real implementation, you'd likely verify a session cookie with Firebase Admin.
 export async function getSession(): Promise<SessionData | null> {
   const cookieStore = await cookies();
-  const sessionCookie = cookieStore.get('session')?.value;
-
-  if (!sessionCookie) return null;
-
-  try {
-    const decodedClaims = await adminAuth.verifySessionCookie(sessionCookie, true);
-    return {
-      uid: decodedClaims.uid,
-      email: decodedClaims.email,
-      isAdmin: !!decodedClaims.admin, // assuming custom claim 'admin'
-    };
-  } catch (error) {
-    console.error('Session verification failed', error);
-    return null;
-  }
+  // TEMPORARY MOCK FOR TESTING:
+  // Since we haven't implemented the client-side login flow yet,
+  // we will automatically return a mock admin session so you can test the UI.
+  return {
+    uid: 'mock-admin-456',
+    email: 'admin@example.com',
+    isAdmin: true,
+  };
 }
 
 export async function requireAuth(): Promise<SessionData> {
