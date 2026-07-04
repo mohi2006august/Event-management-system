@@ -7,18 +7,13 @@ export type SessionData = {
   isAdmin: boolean;
 };
 
-// This is a stub pattern matching what would be expected for server-side auth.
 // In a real implementation, you'd likely verify a session cookie with Firebase Admin.
 export async function getSession(): Promise<SessionData | null> {
   const cookieStore = await cookies();
-  // TEMPORARY MOCK FOR TESTING:
-  // Since we haven't implemented the client-side login flow yet,
-  // we will automatically return a mock admin session so you can test the UI.
-  return {
-    uid: 'mock-admin-456',
-    email: 'admin@example.com',
-    isAdmin: true,
-  };
+  
+  // TODO: Implement actual session verification here
+  // For now, it returns null since there is no session cookie set up yet.
+  return null;
 }
 
 export async function requireAuth(): Promise<SessionData> {
