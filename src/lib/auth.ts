@@ -17,12 +17,17 @@ export async function getSession(): Promise<SessionData | null> {
     // Verify the session cookie with Firebase Admin
     const decodedClaims = await adminAuth.verifySessionCookie(sessionCookie, true);
 
-    // For now, anyone who is logged in is granted admin access
-    // You can refine this by checking an 'admins' collection in Firestore later
+    const adminEmails = (process.env.ADMIN_EMAILS || '')
+      .split(',')
+      .map(e => e.trim().toLowerCase());
+      
+    const userEmail = decodedClaims.email?.toLowerCase();
+    const isAdmin = Boolean(userEmail && adminEmails.includes(userEmail));
+
     return {
       uid: decodedClaims.uid,
       email: decodedClaims.email,
-      isAdmin: true,
+      isAdmin,
     };
   } catch (error) {
     console.error('Session verification failed:', error);
