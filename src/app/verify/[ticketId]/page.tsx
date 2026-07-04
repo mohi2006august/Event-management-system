@@ -10,6 +10,8 @@ interface PageProps {
   }>;
 }
 
+export const dynamic = 'force-dynamic';
+
 export default async function VerifyPage({ params }: PageProps) {
   const { ticketId } = await params;
 

@@ -3,6 +3,8 @@ import { listEvents } from '@/lib/firestore/events';
 import ScannerClient from './ScannerClient';
 import { ScanLine } from 'lucide-react';
 
+export const dynamic = 'force-dynamic';
+
 export default async function AdminCheckinPage() {
   await requireAdmin();
   

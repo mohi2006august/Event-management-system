@@ -13,6 +13,8 @@ interface EventPageProps {
   }>;
 }
 
+export const dynamic = 'force-dynamic';
+
 export default async function EventDetailPage({ params }: EventPageProps) {
   const { slug } = await params;
   const event = await getEventBySlug(slug);

@@ -2,6 +2,8 @@ import Link from 'next/link';
 import { listEvents } from '@/lib/firestore/events';
 import { Calendar, Users, ArrowRight } from 'lucide-react';
 
+export const dynamic = 'force-dynamic';
+
 export default async function EventsListPage() {
   const events = await listEvents();
   

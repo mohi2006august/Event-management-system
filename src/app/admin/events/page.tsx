@@ -4,6 +4,8 @@ import Link from 'next/link';
 import { Plus, Edit2, LayoutDashboard } from 'lucide-react';
 import { deleteEventAction } from './actions';
 import DeleteEventButton from '@/components/events/DeleteEventButton';
+export const dynamic = 'force-dynamic';
+
 export default async function AdminEventsListPage() {
   await requireAdmin(); // Secure this page
   
