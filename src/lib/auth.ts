@@ -1,5 +1,5 @@
 import { cookies } from 'next/headers';
-
+import { adminAuth } from './firebase-admin';
 
 export type SessionData = {
   uid: string;
@@ -7,13 +7,27 @@ export type SessionData = {
   isAdmin: boolean;
 };
 
-// In a real implementation, you'd likely verify a session cookie with Firebase Admin.
 export async function getSession(): Promise<SessionData | null> {
-  const cookieStore = await cookies();
-  
-  // TODO: Implement actual session verification here
-  // For now, it returns null since there is no session cookie set up yet.
-  return null;
+  try {
+    const cookieStore = await cookies();
+    const sessionCookie = cookieStore.get('session')?.value;
+
+    if (!sessionCookie) return null;
+
+    // Verify the session cookie with Firebase Admin
+    const decodedClaims = await adminAuth.verifySessionCookie(sessionCookie, true);
+
+    // For now, anyone who is logged in is granted admin access
+    // You can refine this by checking an 'admins' collection in Firestore later
+    return {
+      uid: decodedClaims.uid,
+      email: decodedClaims.email,
+      isAdmin: true,
+    };
+  } catch (error) {
+    console.error('Session verification failed:', error);
+    return null;
+  }
 }
 
 export async function requireAuth(): Promise<SessionData> {

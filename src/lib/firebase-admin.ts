@@ -1,6 +1,6 @@
 import { initializeApp, getApps, cert } from 'firebase-admin/app';
 import { getFirestore } from 'firebase-admin/firestore';
-
+import { getAuth } from 'firebase-admin/auth';
 
 if (!getApps().length) {
   const projectId = process.env.FIREBASE_PROJECT_ID;
@@ -32,4 +32,8 @@ export const adminDb = new Proxy({} as ReturnType<typeof getFirestore>, {
   }
 });
 
-
+export const adminAuth = new Proxy({} as ReturnType<typeof getAuth>, {
+  get(target, prop, receiver) {
+    return Reflect.get(getAuth(), prop, receiver);
+  }
+});

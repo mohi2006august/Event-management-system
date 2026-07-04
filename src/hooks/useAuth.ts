@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { User, onAuthStateChanged, GoogleAuthProvider, signInWithPopup, signOut as firebaseSignOut } from 'firebase/auth';
+import { User, onAuthStateChanged, GoogleAuthProvider, signInWithPopup, signOut as firebaseSignOut, getIdToken } from 'firebase/auth';
 import { auth } from '@/lib/firebase';
 
 export function useAuth() {
@@ -10,9 +10,31 @@ export function useAuth() {
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(
       auth,
-      (currentUser) => {
-        setUser(currentUser);
-        setLoading(false);
+      async (currentUser) => {
+        try {
+          if (currentUser) {
+            // Get the ID token and send it to our API to create a session cookie
+            const idToken = await getIdToken(currentUser, true);
+            await fetch('/api/auth/session', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({ idToken }),
+            });
+          } else {
+            // If logged out on client, clear the server cookie
+            await fetch('/api/auth/session', {
+              method: 'DELETE',
+            });
+          }
+          setUser(currentUser);
+        } catch (err) {
+          console.error("Session sync error", err);
+          setError(err instanceof Error ? err : new Error(String(err)));
+        } finally {
+          setLoading(false);
+        }
       },
       (err) => {
         setError(err);
@@ -36,6 +58,7 @@ export function useAuth() {
   const signOut = async () => {
     try {
       await firebaseSignOut(auth);
+      // The onAuthStateChanged listener will automatically call the DELETE endpoint
     } catch (err) {
       console.error('Error signing out', err);
       throw err;
