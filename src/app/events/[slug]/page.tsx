@@ -4,7 +4,7 @@ import { Calendar, Users, Clock, AlertCircle } from 'lucide-react';
 import Link from 'next/link';
 
 import RegistrationButton from '@/components/events/RegistrationButton';
-import { getSession } from '@/lib/auth';
+import { getAttendeeSession } from '@/lib/auth';
 import { getRegistration, getRegistrationId } from '@/lib/firestore/registrations';
 
 interface EventPageProps {
@@ -21,11 +21,11 @@ export default async function EventDetailPage({ params }: EventPageProps) {
     notFound();
   }
 
-  const session = await getSession();
+  const attendee = await getAttendeeSession();
   
   let userRegistration = null;
-  if (session) {
-    const regId = getRegistrationId(event.id, session.uid);
+  if (attendee) {
+    const regId = getRegistrationId(event.id, attendee.id);
     userRegistration = await getRegistration(regId);
   }
 
@@ -104,7 +104,7 @@ export default async function EventDetailPage({ params }: EventPageProps) {
                     isFull={isFull}
                     isPastDeadline={isPastDeadline}
                     initialRegistration={userRegistration}
-                    isSignedIn={!!session}
+                    attendee={attendee}
                   />
                 </div>
               </div>

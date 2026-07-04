@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Registration } from '@/types';
+import { Registration, Attendee } from '@/types';
 import { CheckCircle, AlertCircle, Loader2, MailWarning, Send } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 
@@ -10,7 +10,7 @@ interface RegistrationButtonProps {
   isFull: boolean;
   isPastDeadline: boolean;
   initialRegistration: Registration | null;
-  isSignedIn: boolean;
+  attendee: Attendee | null;
 }
 
 export default function RegistrationButton({
@@ -18,17 +18,20 @@ export default function RegistrationButton({
   isFull,
   isPastDeadline,
   initialRegistration,
-  isSignedIn,
+  attendee,
 }: RegistrationButtonProps) {
   const [registration, setRegistration] = useState<Registration | null>(initialRegistration);
   const [isPending, setIsPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [name, setName] = useState('');
+  const [email, setEmail] = useState('');
   const router = useRouter();
 
-  const handleRegister = async () => {
-    if (!isSignedIn) {
-      // In a real app, you might redirect to /login?redirect=/events/...
-      setError('Please sign in to register.');
+  const handleRegister = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    
+    if (!attendee && (!name || !email)) {
+      setError('Please provide your name and email.');
       return;
     }
 
@@ -36,10 +39,16 @@ export default function RegistrationButton({
     setError(null);
 
     try {
+      const payload: any = { eventId, action: 'register' };
+      if (!attendee) {
+        payload.name = name;
+        payload.email = email;
+      }
+
       const res = await fetch('/api/registration', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ eventId, action: 'register' }),
+        body: JSON.stringify(payload),
       });
 
       const data = await res.json();
@@ -127,10 +136,63 @@ export default function RegistrationButton({
     );
   }
 
+  if (!attendee) {
+    return (
+      <form onSubmit={handleRegister} className="w-full flex flex-col gap-4">
+        <div>
+          <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-1">Full Name</label>
+          <input
+            id="name"
+            type="text"
+            required
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            className="w-full px-4 py-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+            placeholder="John Doe"
+          />
+        </div>
+        <div>
+          <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">Email Address</label>
+          <input
+            id="email"
+            type="email"
+            required
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            className="w-full px-4 py-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+            placeholder="john@example.com"
+          />
+        </div>
+        
+        <button
+          type="submit"
+          disabled={isPending}
+          className="w-full mt-2 px-8 py-4 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold shadow-md shadow-blue-200 transition-all flex items-center justify-center disabled:opacity-70 disabled:cursor-not-allowed text-lg"
+        >
+          {isPending ? (
+            <>
+              <Loader2 className="w-6 h-6 animate-spin mr-3" />
+              Processing...
+            </>
+          ) : (
+            'Complete Registration'
+          )}
+        </button>
+
+        {error && (
+          <div className="mt-2 p-3 bg-red-50 text-red-700 text-sm rounded-lg flex items-center w-full border border-red-100">
+            <AlertCircle className="w-4 h-4 mr-2 flex-shrink-0" />
+            {error}
+          </div>
+        )}
+      </form>
+    );
+  }
+
   return (
     <div className="w-full flex flex-col items-center">
       <button
-        onClick={handleRegister}
+        onClick={() => handleRegister()}
         disabled={isPending}
         className="w-full px-8 py-4 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold shadow-md shadow-blue-200 transition-all flex items-center justify-center disabled:opacity-70 disabled:cursor-not-allowed text-lg"
       >
@@ -140,7 +202,7 @@ export default function RegistrationButton({
             Processing...
           </>
         ) : (
-          'Register Now'
+          `Register Now (as ${attendee.name})`
         )}
       </button>
       
@@ -153,3 +215,4 @@ export default function RegistrationButton({
     </div>
   );
 }
+

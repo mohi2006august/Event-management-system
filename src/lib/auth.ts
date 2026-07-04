@@ -36,3 +36,22 @@ export async function requireAdmin(): Promise<SessionData> {
   }
   return session;
 }
+
+import { getAttendee } from './firestore/attendees';
+import type { Attendee } from '../types';
+
+export async function getAttendeeSession(): Promise<Attendee | null> {
+  const cookieStore = await cookies();
+  const attendeeId = cookieStore.get('attendeeId')?.value;
+  
+  if (!attendeeId) {
+    return null;
+  }
+  
+  try {
+    return await getAttendee(attendeeId);
+  } catch (error) {
+    console.error('Error fetching attendee session:', error);
+    return null;
+  }
+}

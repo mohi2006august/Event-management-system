@@ -18,9 +18,17 @@ export interface Registration {
   id: string; // `${eventId}_${userId}`
   eventId: string;
   userId: string;
-  ticketCode: string; // signed token
+  ticketId: string; // unique alphanumeric code
   status: 'registered' | 'attended' | 'cancelled';
   emailStatus: 'pending' | 'sent' | 'failed';
   registeredAt: number;
   attendedAt?: number;
+}
+
+// Attendee Data Model (Public Users)
+export interface Attendee {
+  id: string;
+  name: string;
+  email: string;
+  createdAt: number;
 }

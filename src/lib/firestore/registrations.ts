@@ -1,6 +1,6 @@
 import { adminDb } from '../firebase-admin';
 import type { Registration, Event } from '../../types';
-import { generateTicketCode } from '../qr/ticket';
+import { generateTicketId } from '../ticket/qr';
 import { FieldValue } from 'firebase-admin/firestore';
 
 const REGISTRATIONS_COLLECTION = 'registrations';
@@ -40,72 +40,86 @@ export async function getRegistration(registrationId: string): Promise<Registrat
 
 /**
  * The core registration transaction.
- * Reads event and registration docs. If valid, writes the registration and increments capacity.
- * The ticket code is generated and saved AFTER the transaction successfully commits to avoid side effects during retries.
+ * Reads event and registration docs. If valid, writes the registration, reserved ticket ID, and increments capacity.
  */
 export async function registerForEvent(eventId: string, userId: string): Promise<Registration> {
   const regId = getRegistrationId(eventId, userId);
   const eventRef = adminDb.collection(EVENTS_COLLECTION).doc(eventId);
   const regRef = adminDb.collection(REGISTRATIONS_COLLECTION).doc(regId);
 
-  // 1. Execute the transaction
-  const initialRegData = await adminDb.runTransaction(async (transaction) => {
-    const eventDoc = await transaction.get(eventRef);
-    const regDoc = await transaction.get(regRef);
+  let finalRegistration: Registration | null = null;
 
-    if (!eventDoc.exists) {
-      throw new RegistrationError('EVENT_NOT_FOUND');
+  // Collision retry loop
+  for (let attempt = 0; attempt < 3; attempt++) {
+    const candidateTicketId = generateTicketId();
+    const ticketRef = adminDb.collection('tickets').doc(candidateTicketId);
+
+    try {
+      finalRegistration = await adminDb.runTransaction(async (transaction) => {
+        const eventDoc = await transaction.get(eventRef);
+        const regDoc = await transaction.get(regRef);
+        const ticketDoc = await transaction.get(ticketRef);
+
+        if (!eventDoc.exists) {
+          throw new RegistrationError('EVENT_NOT_FOUND');
+        }
+
+        if (regDoc.exists) {
+          throw new RegistrationError('ALREADY_REGISTERED');
+        }
+
+        if (ticketDoc.exists) {
+          throw new Error('COLLISION');
+        }
+
+        const eventData = eventDoc.data() as Event;
+
+        if (Date.now() > eventData.registrationDeadline) {
+          throw new RegistrationError('DEADLINE_PASSED');
+        }
+
+        if (eventData.registeredCount >= eventData.capacity) {
+          throw new RegistrationError('EVENT_FULL');
+        }
+
+        const newRegistration: Omit<Registration, 'id'> = {
+          eventId,
+          userId,
+          ticketId: candidateTicketId,
+          status: 'registered',
+          emailStatus: 'pending',
+          registeredAt: Date.now(),
+        };
+
+        // Write registration
+        transaction.set(regRef, newRegistration);
+        
+        // Reserve ticket ID
+        transaction.set(ticketRef, { registrationId: regId, eventId, userId });
+
+        // Increment event capacity
+        transaction.update(eventRef, {
+          registeredCount: FieldValue.increment(1)
+        });
+
+        return { id: regId, ...newRegistration } as Registration;
+      });
+      
+      // If transaction succeeded without collision, break out of loop
+      break;
+    } catch (error: any) {
+      if (error.message === 'COLLISION') {
+        continue;
+      }
+      throw error;
     }
+  }
 
-    if (regDoc.exists) {
-      throw new RegistrationError('ALREADY_REGISTERED');
-    }
+  if (!finalRegistration) {
+    throw new Error('Failed to generate a unique ticket ID after 3 attempts');
+  }
 
-    const eventData = eventDoc.data() as Event;
-
-    if (Date.now() > eventData.registrationDeadline) {
-      throw new RegistrationError('DEADLINE_PASSED');
-    }
-
-    if (eventData.registeredCount >= eventData.capacity) {
-      throw new RegistrationError('EVENT_FULL');
-    }
-
-    const newRegistration: Omit<Registration, 'id'> = {
-      eventId,
-      userId,
-      ticketCode: '', // Placeholder, generated after commit
-      status: 'registered',
-      emailStatus: 'pending',
-      registeredAt: Date.now(),
-    };
-
-    // Write registration
-    transaction.set(regRef, newRegistration);
-
-    // Increment event capacity
-    transaction.update(eventRef, {
-      registeredCount: FieldValue.increment(1)
-    });
-
-    return { id: regId, ...newRegistration } as Registration;
-  });
-
-  // 2. Generate the ticket code OUTSIDE the transaction
-  const ticketCode = await generateTicketCode({
-    eventId,
-    userId,
-    registrationId: regId,
-  });
-
-  // 3. Update the registration with the signed ticket code
-  await regRef.update({ ticketCode });
-
-  // 4. Return the finalized registration object
-  return {
-    ...initialRegData,
-    ticketCode,
-  };
+  return finalRegistration;
 }
 
 /**

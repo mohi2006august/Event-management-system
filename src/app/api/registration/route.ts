@@ -1,22 +1,25 @@
 import { NextResponse } from 'next/server';
-import { getSession } from '@/lib/auth';
+import { getAttendeeSession } from '@/lib/auth';
+import { createAttendee } from '@/lib/firestore/attendees';
 import { registerForEvent, RegistrationError, getRegistration, getRegistrationId } from '@/lib/firestore/registrations';
-import { sendTicketEmail } from '@/lib/email';
+import { getEvent } from '@/lib/firestore/events';
+import { sendTicketEmail } from '@/lib/ticket/email';
+import { generateQR } from '@/lib/ticket/qr';
+import { generateTicketPDF } from '@/lib/ticket/pdf';
 import { adminDb } from '@/lib/firebase-admin';
 import { z } from 'zod';
+import { cookies } from 'next/headers';
 
 const requestSchema = z.object({
   eventId: z.string().min(1, 'eventId is required'),
   action: z.enum(['register', 'resend']).default('register'),
+  name: z.string().optional(),
+  email: z.string().email().optional(),
 });
 
 export async function POST(request: Request) {
   try {
-    const session = await getSession();
-    if (!session) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
+    let attendee = await getAttendeeSession();
     const body = await request.json();
     const result = requestSchema.safeParse(body);
 
@@ -24,11 +27,35 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Invalid request data', details: result.error.format() }, { status: 400 });
     }
 
-    const { eventId, action } = result.data;
-    const userEmail = session.email || 'user@example.com'; // Fallback if claim is missing
-    const regId = getRegistrationId(eventId, session.uid);
+    const { eventId, action, name, email } = result.data;
+
+    // 1. Fetch Event Details
+    const event = await getEvent(eventId);
+    if (!event) {
+      return NextResponse.json({ error: 'EVENT_NOT_FOUND' }, { status: 404 });
+    }
+
+    // 2. Resolve Attendee
+    if (!attendee) {
+      if (!name || !email) {
+        return NextResponse.json({ error: 'Name and email are required for new registrations.' }, { status: 400 });
+      }
+      const attendeeId = crypto.randomUUID();
+      attendee = await createAttendee(attendeeId, { name, email });
+      const cookieStore = await cookies();
+      cookieStore.set('attendeeId', attendeeId, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax',
+        maxAge: 60 * 60 * 24 * 365, // 1 year
+      });
+    }
+
+    const userId = attendee.id;
+    const regId = getRegistrationId(eventId, userId);
     let registration;
 
+    // 3. Database Registration & Collision Handling
     if (action === 'resend') {
       registration = await getRegistration(regId);
       if (!registration) {
@@ -39,8 +66,8 @@ export async function POST(request: Request) {
       }
     } else {
       try {
-        registration = await registerForEvent(eventId, session.uid);
-      } catch (error) {
+        registration = await registerForEvent(eventId, userId);
+      } catch (error: any) {
         if (error instanceof RegistrationError) {
           const statusMap: Record<string, number> = {
             'EVENT_NOT_FOUND': 404,
@@ -54,15 +81,25 @@ export async function POST(request: Request) {
       }
     }
 
-    // Attempt to send the ticket email
+    // 4. Orchestrate Ticket Generation and Email
     try {
-      await sendTicketEmail(registration, userEmail);
-      // If success, update email status
+      // Determine host for QR URL (in production this should be your actual domain from env)
+      const host = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+      
+      // Generate QR Code Data URL
+      const qrDataUrl = await generateQR(registration.ticketId, host);
+      
+      // Generate PDF Buffer
+      const pdfBuffer = await generateTicketPDF(registration, event, attendee, qrDataUrl);
+      
+      // Compose & Send Email
+      await sendTicketEmail(attendee, event, registration, pdfBuffer);
+
+      // Mark success
       await adminDb.collection('registrations').doc(regId).update({ emailStatus: 'sent' });
       registration.emailStatus = 'sent';
-    } catch (emailError) {
-      console.error('Failed to send ticket email:', emailError);
-      // NEVER fail the registration itself due to an email failure
+    } catch (ticketPipelineError) {
+      console.error('Failed in ticket generation/email pipeline:', ticketPipelineError);
       await adminDb.collection('registrations').doc(regId).update({ emailStatus: 'failed' });
       registration.emailStatus = 'failed';
     }
@@ -73,3 +110,4 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
 }
+
