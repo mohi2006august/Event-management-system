@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { User, onAuthStateChanged, GoogleAuthProvider, signInWithRedirect, signOut as firebaseSignOut, getIdToken } from 'firebase/auth';
+import { User, onAuthStateChanged, GoogleAuthProvider, signInWithRedirect, signInWithEmailAndPassword, signOut as firebaseSignOut, getIdToken } from 'firebase/auth';
 import { auth } from '@/lib/firebase';
 
 export function useAuth() {
@@ -56,6 +56,15 @@ export function useAuth() {
     }
   };
 
+  const signInWithEmail = async (email: string, pass: string) => {
+    try {
+      await signInWithEmailAndPassword(auth, email, pass);
+    } catch (err) {
+      console.error('Error signing in with Email', err);
+      throw err;
+    }
+  };
+
   const signOut = async () => {
     try {
       await firebaseSignOut(auth);
@@ -66,5 +75,5 @@ export function useAuth() {
     }
   };
 
-  return { user, loading, error, signInWithGoogle, signOut };
+  return { user, loading, error, signInWithGoogle, signInWithEmail, signOut };
 }
