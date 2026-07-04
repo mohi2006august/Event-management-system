@@ -1,4 +1,5 @@
 import { cookies } from 'next/headers';
+import { redirect } from 'next/navigation';
 import { adminAuth } from './firebase-admin';
 
 export type SessionData = {
@@ -38,7 +39,7 @@ export async function getSession(): Promise<SessionData | null> {
 export async function requireAuth(): Promise<SessionData> {
   const session = await getSession();
   if (!session) {
-    throw new Error('Unauthorized');
+    redirect('/profile');
   }
   return session;
 }
@@ -46,7 +47,7 @@ export async function requireAuth(): Promise<SessionData> {
 export async function requireAdmin(): Promise<SessionData> {
   const session = await requireAuth();
   if (!session.isAdmin) {
-    throw new Error('Forbidden: Admin access required');
+    redirect('/events');
   }
   return session;
 }
