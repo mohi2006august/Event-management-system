@@ -1,5 +1,5 @@
 import { cookies } from 'next/headers';
-import { adminAuth } from './firebase-admin';
+
 
 export type SessionData = {
   uid: string;
