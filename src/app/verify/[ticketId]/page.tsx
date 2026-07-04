@@ -5,13 +5,13 @@ import { getSession } from '@/lib/auth';
 import VerifyClient from './VerifyClient';
 
 interface PageProps {
-  params: {
+  params: Promise<{
     ticketId: string;
-  };
+  }>;
 }
 
 export default async function VerifyPage({ params }: PageProps) {
-  const { ticketId } = params;
+  const { ticketId } = await params;
 
   // 1. Fetch Ticket Record
   const ticketDoc = await adminDb.collection('tickets').doc(ticketId).get();

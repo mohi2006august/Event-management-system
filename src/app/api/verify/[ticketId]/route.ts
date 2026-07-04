@@ -5,7 +5,7 @@ import { adminDb } from '@/lib/firebase-admin';
 
 export async function POST(
   request: Request,
-  { params }: { params: { ticketId: string } }
+  { params }: { params: Promise<{ ticketId: string }> }
 ) {
   try {
     const session = await requireAdmin();
@@ -13,7 +13,7 @@ export async function POST(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
     }
 
-    const { ticketId } = params;
+    const { ticketId } = await params;
 
     // Look up the ticket reservation
     const ticketDoc = await adminDb.collection('tickets').doc(ticketId).get();
