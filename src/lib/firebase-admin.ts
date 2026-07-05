@@ -9,12 +9,21 @@ if (!getApps().length) {
 
   if (projectId && clientEmail && privateKey) {
     try {
-      // Clean the private key:
       // 1. Remove surrounding quotes if they were accidentally copy-pasted
+      let cleanedPrivateKey = privateKey.replace(/(^"|"$)/g, '');
+      
       // 2. Replace escaped \n with actual newlines
-      const cleanedPrivateKey = privateKey
-        .replace(/(^"|"$)/g, '')
-        .replace(/\\n/g, '\n');
+      cleanedPrivateKey = cleanedPrivateKey.replace(/\\n/g, '\n');
+
+      // 3. If Vercel squashed it into a single line with spaces, rebuild the PEM format:
+      if (!cleanedPrivateKey.includes('\n')) {
+        const match = cleanedPrivateKey.match(/-----BEGIN PRIVATE KEY-----\s*(.*?)\s*-----END PRIVATE KEY-----/);
+        if (match) {
+          const body = match[1].replace(/\s+/g, ''); // remove any spaces
+          const wrappedBody = body.match(/.{1,64}/g)?.join('\n') || body; // wrap at 64 chars
+          cleanedPrivateKey = `-----BEGIN PRIVATE KEY-----\n${wrappedBody}\n-----END PRIVATE KEY-----\n`;
+        }
+      }
 
       initializeApp({
         credential: cert({
