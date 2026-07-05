@@ -1,13 +1,30 @@
 import { useState, useEffect } from 'react';
-import { User, onAuthStateChanged, GoogleAuthProvider, signInWithPopup, signInWithEmailAndPassword, signOut as firebaseSignOut, getIdToken } from 'firebase/auth';
+import { User, onAuthStateChanged, GoogleAuthProvider, signInWithRedirect, getRedirectResult, signInWithEmailAndPassword, signOut as firebaseSignOut, getIdToken } from 'firebase/auth';
+import { useRouter } from 'next/navigation';
 import { auth } from '@/lib/firebase';
 
 export function useAuth() {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
+  const router = useRouter();
 
   useEffect(() => {
+    // Check if we just returned from a Google OAuth redirect
+    getRedirectResult(auth).then(async (result) => {
+      if (result && result.user) {
+        // Explicitly set the session cookie before refreshing
+        const idToken = await getIdToken(result.user, true);
+        await fetch('/api/auth/session', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ idToken }),
+        });
+        // Refresh the server state so Next.js picks up the new cookie instantly
+        router.refresh();
+      }
+    }).catch(console.error);
+
     const unsubscribe = onAuthStateChanged(
       auth,
       async (currentUser) => {
@@ -48,16 +65,8 @@ export function useAuth() {
   const signInWithGoogle = async () => {
     try {
       const provider = new GoogleAuthProvider();
-      const userCredential = await signInWithPopup(auth, provider);
-      const idToken = await getIdToken(userCredential.user, true);
-      await fetch('/api/auth/session', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ idToken }),
-      });
-      return userCredential.user;
+      // Using Redirect instead of Popup to bypass strict browser popup blockers
+      await signInWithRedirect(auth, provider);
     } catch (err) {
       console.error('Error signing in with Google', err);
       throw err;
