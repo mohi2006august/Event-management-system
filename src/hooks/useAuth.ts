@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { User, onAuthStateChanged, GoogleAuthProvider, signInWithRedirect, signInWithEmailAndPassword, signOut as firebaseSignOut, getIdToken } from 'firebase/auth';
+import { User, onAuthStateChanged, GoogleAuthProvider, signInWithPopup, signInWithEmailAndPassword, signOut as firebaseSignOut, getIdToken } from 'firebase/auth';
 import { auth } from '@/lib/firebase';
 
 export function useAuth() {
@@ -48,8 +48,16 @@ export function useAuth() {
   const signInWithGoogle = async () => {
     try {
       const provider = new GoogleAuthProvider();
-      // Using Redirect instead of Popup to bypass strict browser popup blockers
-      await signInWithRedirect(auth, provider);
+      const userCredential = await signInWithPopup(auth, provider);
+      const idToken = await getIdToken(userCredential.user, true);
+      await fetch('/api/auth/session', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ idToken }),
+      });
+      return userCredential.user;
     } catch (err) {
       console.error('Error signing in with Google', err);
       throw err;

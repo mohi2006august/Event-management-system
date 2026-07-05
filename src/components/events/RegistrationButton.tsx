@@ -70,14 +70,27 @@ export default function RegistrationButton({
     );
   }
 
+  const handleLoginClick = async () => {
+    setIsPending(true);
+    try {
+      await signInWithGoogle();
+      router.refresh();
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setIsPending(false);
+    }
+  };
+
   if (!session) {
     return (
       <button
-        onClick={signInWithGoogle}
-        className="w-full px-8 py-4 bg-white/10 hover:bg-white/20 text-white rounded-2xl font-black shadow-[0_0_20px_rgba(255,255,255,0.1)] transition-all duration-300 transform hover:-translate-y-1 active:translate-y-0 active:scale-95 text-xl tracking-wide flex items-center justify-center border border-white/20"
+        onClick={handleLoginClick}
+        disabled={isPending}
+        className="w-full px-8 py-4 bg-white/10 hover:bg-white/20 text-white rounded-2xl font-black shadow-[0_0_20px_rgba(255,255,255,0.1)] transition-all duration-300 transform hover:-translate-y-1 active:translate-y-0 active:scale-95 text-xl tracking-wide flex items-center justify-center border border-white/20 disabled:opacity-50 disabled:cursor-not-allowed"
       >
-        <LogIn className="w-6 h-6 mr-3" />
-        Sign in to Register
+        {isPending ? <Loader2 className="w-6 h-6 mr-3 animate-spin" /> : <LogIn className="w-6 h-6 mr-3" />}
+        {isPending ? 'Signing in...' : 'Sign in to Register'}
       </button>
     );
   }
