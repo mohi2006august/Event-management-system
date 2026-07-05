@@ -98,7 +98,7 @@ export default function RegistrationButton({
   if (!attendee) {
     return (
       <Link
-        href="/profile"
+        href={`/profile?returnUrl=${encodeURIComponent('/events/' + slug)}`}
         className="w-full px-8 py-4 bg-gradient-to-r from-orange-600 to-pink-600 hover:from-orange-500 hover:to-pink-500 text-white rounded-2xl font-black shadow-[0_0_20px_rgba(249,115,22,0.4)] transition-all duration-300 transform hover:-translate-y-1 active:translate-y-0 active:scale-95 text-xl tracking-wide flex items-center justify-center"
       >
         <User className="w-6 h-6 mr-3" />

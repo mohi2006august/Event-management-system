@@ -3,7 +3,9 @@
 import { useState } from 'react';
 import { User, Mail, Phone, GraduationCap, Building, Hash, Loader2, CheckCircle, AlertCircle } from 'lucide-react';
 import { Attendee } from '@/types';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { updateProfile } from 'firebase/auth';
+import { auth } from '@/lib/firebase';
 
 export default function ProfileForm({ session, attendee }: { session: any, attendee: Attendee | null }) {
   const [name, setName] = useState(attendee?.name || session.email?.split('@')[0] || '');
@@ -18,6 +20,8 @@ export default function ProfileForm({ session, attendee }: { session: any, atten
   const [success, setSuccess] = useState(false);
 
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const returnUrl = searchParams.get('returnUrl');
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -38,8 +42,18 @@ export default function ProfileForm({ session, attendee }: { session: any, atten
       if (!res.ok) {
         setError(data.error || 'Failed to update profile');
       } else {
-        setSuccess(true);
-        router.refresh(); // Refresh the page to get the updated session state if needed
+        // Update client-side Firebase Auth displayName so the Navbar updates instantly
+        if (auth.currentUser) {
+          await updateProfile(auth.currentUser, { displayName: name });
+        }
+        
+        if (returnUrl) {
+          router.push(returnUrl);
+          router.refresh();
+        } else {
+          setSuccess(true);
+          router.refresh(); // Refresh the page to get the updated session state if needed
+        }
       }
     } catch (err) {
       setError('A network error occurred.');

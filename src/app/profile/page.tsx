@@ -1,3 +1,4 @@
+import React from 'react';
 import { getSession } from '@/lib/auth';
 import { getAttendee } from '@/lib/firestore/attendees';
 import { redirect } from 'next/navigation';
@@ -30,7 +31,9 @@ export default async function ProfilePage() {
             </p>
           </div>
 
-          <ProfileForm session={session} attendee={attendee} />
+          <React.Suspense fallback={<div className="text-center text-white">Loading...</div>}>
+            <ProfileForm session={session} attendee={attendee} />
+          </React.Suspense>
         </div>
       </div>
     </div>
