@@ -3,9 +3,11 @@
 import Link from 'next/link';
 import { useAuth } from '@/hooks/useAuth';
 import { LogIn, LogOut, User as UserIcon } from 'lucide-react';
+import { usePathname } from 'next/navigation';
 
 export function Navigation() {
   const { user, loading, signInWithGoogle, signOut } = useAuth();
+  const pathname = usePathname();
 
   return (
     <nav className="bg-white border-b border-gray-100 sticky top-0 z-50">
@@ -32,15 +34,14 @@ export function Navigation() {
               <>
                 {user ? (
                   <>
-                    <Link 
-                      href="/profile"
-                      className="text-gray-500 hover:text-gray-700 transition-colors flex items-center space-x-2 text-sm font-medium"
+                    <div 
+                      className="text-gray-700 flex items-center space-x-2 text-sm font-medium select-none"
                     >
                       {user.photoURL ? (
                         // eslint-disable-next-line @next/next/no-img-element
                         <img 
                           src={user.photoURL} 
-                          alt="Profile" 
+                          alt="User" 
                           className="w-8 h-8 rounded-full border border-gray-200"
                         />
                       ) : (
@@ -48,8 +49,10 @@ export function Navigation() {
                           <UserIcon className="w-4 h-4" />
                         </div>
                       )}
-                      <span className="hidden sm:inline-block">Profile</span>
-                    </Link>
+                      <span className="hidden sm:inline-block text-gray-600 font-normal">
+                        {user.displayName || user.email || 'Signed In'}
+                      </span>
+                    </div>
                     <button
                       onClick={signOut}
                       className="inline-flex items-center px-3 py-2 border border-transparent text-sm font-medium rounded-md text-gray-500 bg-gray-50 hover:text-gray-700 hover:bg-gray-100 transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-200"
@@ -59,13 +62,15 @@ export function Navigation() {
                     </button>
                   </>
                 ) : (
-                  <button
-                    onClick={signInWithGoogle}
-                    className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-                  >
-                    <LogIn className="w-4 h-4 mr-2" />
-                    Sign in with Google
-                  </button>
+                  !pathname.startsWith('/admin') && (
+                    <button
+                      onClick={signInWithGoogle}
+                      className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                    >
+                      <LogIn className="w-4 h-4 mr-2" />
+                      Sign in with Google
+                    </button>
+                  )
                 )}
               </>
             )}

@@ -58,7 +58,15 @@ export function useAuth() {
 
   const signInWithEmail = async (email: string, pass: string) => {
     try {
-      await signInWithEmailAndPassword(auth, email, pass);
+      const userCredential = await signInWithEmailAndPassword(auth, email, pass);
+      const idToken = await getIdToken(userCredential.user, true);
+      await fetch('/api/auth/session', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ idToken }),
+      });
     } catch (err) {
       console.error('Error signing in with Email', err);
       throw err;

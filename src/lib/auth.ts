@@ -39,7 +39,7 @@ export async function getSession(): Promise<SessionData | null> {
 export async function requireAuth(): Promise<SessionData> {
   const session = await getSession();
   if (!session) {
-    redirect('/profile');
+    redirect('/admin/login');
   }
   return session;
 }
