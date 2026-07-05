@@ -56,15 +56,14 @@ import { getAttendee } from './firestore/attendees';
 import type { Attendee } from '../types';
 
 export async function getAttendeeSession(): Promise<Attendee | null> {
-  const cookieStore = await cookies();
-  const attendeeId = cookieStore.get('attendeeId')?.value;
+  const session = await getSession();
   
-  if (!attendeeId) {
+  if (!session) {
     return null;
   }
   
   try {
-    return await getAttendee(attendeeId);
+    return await getAttendee(session.uid);
   } catch (error) {
     console.error('Error fetching attendee session:', error);
     return null;

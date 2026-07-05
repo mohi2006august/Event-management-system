@@ -34,14 +34,7 @@ export default function AdminLoginPage() {
   };
 
   return (
-    <div 
-      className="min-h-[calc(100vh-4rem)] flex-1 flex items-center justify-center px-4 sm:px-6 lg:px-8 relative overflow-hidden bg-[#040209]"
-      style={{
-        background: 'linear-gradient(-45deg, #040209, #0f0822, #05030e, #16072d)',
-        backgroundSize: '400% 400%',
-        animation: 'liquid-bg 20s ease infinite'
-      }}
-    >
+    <div className="flex-1 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8 relative z-10 w-full">
       {/* CSS Keyframes and styling for Apple Liquid Glass animations */}
       <style>{`
         @keyframes liquid-bg {
@@ -139,44 +132,6 @@ export default function AdminLoginPage() {
           background-color: transparent !important;
         }
       `}</style>
-
-      {/* Full-Page Cyber Grid Overlay */}
-      <div className="absolute inset-0 cyber-grid pointer-events-none z-0"></div>
-
-      {/* Dynamic Floating Liquid Blobs in the Background */}
-      <div 
-        className="absolute w-[700px] h-[700px] bg-purple-600/40 blur-3xl pointer-events-none mix-blend-screen z-0"
-        style={{
-          top: '-20%',
-          left: '-10%',
-          animation: 'float-blob-1 25s infinite alternate ease-in-out, morph-liquid-1 22s infinite ease-in-out'
-        }}
-      ></div>
-      <div 
-        className="absolute w-[600px] h-[600px] bg-pink-600/30 blur-3xl pointer-events-none mix-blend-screen z-0"
-        style={{
-          bottom: '-15%',
-          right: '-10%',
-          animation: 'float-blob-2 20s infinite alternate ease-in-out, morph-liquid-2 18s infinite ease-in-out'
-        }}
-      ></div>
-      <div 
-        className="absolute w-[550px] h-[550px] bg-indigo-500/35 blur-3xl pointer-events-none mix-blend-screen z-0"
-        style={{
-          top: '25%',
-          left: '35%',
-          transform: 'translate(-50%, -50%)',
-          animation: 'float-blob-3 30s infinite alternate ease-in-out, morph-liquid-1 28s infinite ease-in-out'
-        }}
-      ></div>
-      <div 
-        className="absolute w-[500px] h-[500px] bg-emerald-600/20 blur-3xl pointer-events-none mix-blend-screen z-0"
-        style={{
-          bottom: '20%',
-          left: '10%',
-          animation: 'float-blob-4 24s infinite alternate ease-in-out, morph-liquid-2 22s infinite ease-in-out'
-        }}
-      ></div>
 
       {/* Apple Glassmorphic Card Container */}
       <div className="max-w-md w-full relative z-10 apple-glass-card p-10 border border-white/10 text-white shadow-2xl">

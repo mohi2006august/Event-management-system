@@ -8,13 +8,11 @@ import { generateQR } from '@/lib/ticket/qr';
 import { generateTicketPDF } from '@/lib/ticket/pdf';
 import { adminDb } from '@/lib/firebase-admin';
 import { z } from 'zod';
-import { cookies } from 'next/headers';
+
 
 const requestSchema = z.object({
   eventId: z.string().min(1, 'eventId is required'),
   action: z.enum(['register', 'resend']).default('register'),
-  name: z.string().optional(),
-  email: z.string().email().optional(),
 });
 
 export async function POST(request: Request) {
@@ -27,7 +25,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Invalid request data', details: result.error.format() }, { status: 400 });
     }
 
-    const { eventId, action, name, email } = result.data;
+    const { eventId, action } = result.data;
 
     // 1. Fetch Event Details
     const event = await getEvent(eventId);
@@ -37,18 +35,7 @@ export async function POST(request: Request) {
 
     // 2. Resolve Attendee
     if (!attendee) {
-      if (!name || !email) {
-        return NextResponse.json({ error: 'Name and email are required for new registrations.' }, { status: 400 });
-      }
-      const attendeeId = crypto.randomUUID();
-      attendee = await createAttendee(attendeeId, { name, email });
-      const cookieStore = await cookies();
-      cookieStore.set('attendeeId', attendeeId, {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
-        sameSite: 'lax',
-        maxAge: 60 * 60 * 24 * 365, // 1 year
-      });
+      return NextResponse.json({ error: 'Unauthorized. Please complete your profile.' }, { status: 401 });
     }
 
     const userId = attendee.id;

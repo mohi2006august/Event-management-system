@@ -138,36 +138,38 @@ export default function ScannerClient({ events }: ScannerClientProps) {
 
   if (hasPermissionError) {
     return (
-      <div className="bg-red-50 p-8 rounded-2xl border border-red-200 text-center max-w-lg mx-auto mt-10">
-        <ShieldAlert className="w-16 h-16 text-red-500 mx-auto mb-4" />
-        <h2 className="text-xl font-bold text-red-900 mb-2">Camera Access Required</h2>
-        <p className="text-red-700 mb-4">
+      <div className="bg-red-500/10 p-8 rounded-[2rem] border border-red-500/30 text-center max-w-lg mx-auto mt-10 backdrop-blur-md">
+        <ShieldAlert className="w-16 h-16 text-red-400 mx-auto mb-4 drop-shadow-[0_0_15px_rgba(248,113,113,0.5)]" />
+        <h2 className="text-2xl font-black text-white mb-2 tracking-tight">Camera Access Required</h2>
+        <p className="text-red-200 mb-6 font-medium">
           We could not access your camera. This usually happens if you deny camera permissions, or if you are not accessing this site over HTTPS.
         </p>
-        <p className="text-sm text-red-600 bg-red-100 p-4 rounded-lg font-mono">
-          <strong>Testing locally on your phone?</strong><br/>
+        <p className="text-sm text-red-200/80 bg-red-950/40 p-5 rounded-2xl font-mono border border-red-500/20 text-left">
+          <strong className="text-red-300">Testing locally on your phone?</strong><br/><br/>
           You cannot use an IP address (like 192.168.x.x) because modern browsers block camera access on non-HTTPS connections. <br/><br/>
-          Please use a tunneling service like <strong>ngrok</strong> (`ngrok http 3000`) and open the HTTPS URL on your phone.
+          Please use a tunneling service like <strong className="text-white">ngrok</strong> (`ngrok http 3000`) and open the HTTPS URL on your phone.
         </p>
       </div>
     );
   }
 
   return (
-    <div className="max-w-4xl mx-auto w-full grid grid-cols-1 md:grid-cols-2 gap-8 mt-8">
+    <div className="max-w-4xl mx-auto w-full grid grid-cols-1 md:grid-cols-2 gap-8 mt-8 relative z-10">
       {/* Scanner Section */}
-      <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex flex-col">
-        <div className="mb-4">
-          <label className="block text-sm font-semibold text-gray-700 mb-2">Select Event to Check-in</label>
+      <div className="apple-glass-card p-6 rounded-[2rem] border border-white/10 flex flex-col relative overflow-hidden">
+        <div className="absolute inset-0 bg-gradient-to-tr from-purple-500/5 to-indigo-500/5 pointer-events-none"></div>
+        <div className="mb-5 relative z-10">
+          <label className="block text-sm font-bold text-purple-200/80 mb-2 uppercase tracking-wider">Select Event to Check-in</label>
           <select
             value={selectedEventId}
             onChange={(e) => setSelectedEventId(e.target.value)}
-            className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-blue-500 outline-none bg-gray-50"
+            className="w-full px-4 py-3.5 rounded-xl border border-white/10 focus:ring-2 focus:ring-purple-500/50 outline-none bg-white/5 text-white backdrop-blur-sm transition-all font-medium appearance-none"
             disabled={scanResult.status === 'processing'}
+            style={{ backgroundImage: `url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%23d8b4fe' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e")`, backgroundPosition: 'right 1rem center', backgroundRepeat: 'no-repeat', backgroundSize: '1.5em 1.5em' }}
           >
-            {events.length === 0 && <option value="">No events available</option>}
+            {events.length === 0 && <option value="" className="bg-[#0f0822]">No events available</option>}
             {events.map(event => (
-              <option key={event.id} value={event.id}>{event.title}</option>
+              <option key={event.id} value={event.id} className="bg-[#0f0822]">{event.title}</option>
             ))}
           </select>
         </div>
@@ -228,17 +230,20 @@ export default function ScannerClient({ events }: ScannerClientProps) {
       </div>
 
       {/* Stats Section */}
-      <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex flex-col items-center justify-center text-center">
-        <div className="w-24 h-24 bg-blue-50 rounded-full flex items-center justify-center mb-6">
-          <Camera className="w-10 h-10 text-blue-600" />
+      <div className="apple-glass-card p-8 rounded-[2rem] border border-white/10 flex flex-col items-center justify-center text-center relative overflow-hidden">
+        <div className="absolute inset-0 bg-gradient-to-tr from-purple-500/5 to-pink-500/5 pointer-events-none"></div>
+        <div className="relative z-10 flex flex-col items-center">
+          <div className="w-24 h-24 bg-purple-500/20 rounded-full flex items-center justify-center mb-6 border border-purple-500/30">
+            <Camera className="w-10 h-10 text-purple-300 drop-shadow-[0_0_10px_rgba(216,180,254,0.5)]" />
+          </div>
+          <h2 className="text-purple-200/80 text-lg font-bold uppercase tracking-widest mb-2">Session Check-ins</h2>
+          <div className="text-7xl font-black text-transparent bg-clip-text bg-gradient-to-br from-white to-purple-200 tracking-tighter drop-shadow-md">
+            {successCount}
+          </div>
+          <p className="mt-8 text-sm text-purple-200/60 max-w-xs font-medium leading-relaxed">
+            Keep the camera pointed at the QR code. The scanner will automatically lock after a scan and resume shortly after.
+          </p>
         </div>
-        <h2 className="text-gray-500 text-lg font-medium mb-2">Session Check-ins</h2>
-        <div className="text-7xl font-black text-gray-900 tracking-tighter">
-          {successCount}
-        </div>
-        <p className="mt-6 text-sm text-gray-400 max-w-xs">
-          Keep the camera pointed at the QR code. The scanner will automatically lock after a scan and resume shortly after.
-        </p>
       </div>
     </div>
   );

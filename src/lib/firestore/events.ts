@@ -55,8 +55,13 @@ export async function createEvent(data: Omit<Event, 'id' | 'createdAt' | 'update
     updatedAt: now,
   };
   
-  await docRef.set(event);
-  return event;
+  // Firestore rejects undefined values, so we strip them from the payload
+  const cleanEvent = Object.fromEntries(
+    Object.entries(event).filter(([_, v]) => v !== undefined)
+  ) as unknown as Event;
+  
+  await docRef.set(cleanEvent);
+  return cleanEvent;
 }
 
 /**
@@ -65,8 +70,13 @@ export async function createEvent(data: Omit<Event, 'id' | 'createdAt' | 'update
 export async function updateEvent(id: string, data: Partial<Omit<Event, 'id' | 'createdAt' | 'registeredCount'>>): Promise<void> {
   const docRef = adminDb.collection(EVENTS_COLLECTION).doc(id);
   
+  // Firestore rejects undefined values, so we strip them from the payload
+  const cleanData = Object.fromEntries(
+    Object.entries(data).filter(([_, v]) => v !== undefined)
+  );
+  
   await docRef.update({
-    ...data,
+    ...cleanData,
     updatedAt: Date.now(),
   });
 }

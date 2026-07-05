@@ -19,3 +19,8 @@ export async function createAttendee(id: string, data: Omit<Attendee, 'id' | 'cr
   await docRef.set(attendee);
   return attendee;
 }
+
+export async function updateAttendee(id: string, data: Partial<Omit<Attendee, 'id' | 'createdAt'>>): Promise<void> {
+  const docRef = adminDb.collection(ATTENDEES_COLLECTION).doc(id);
+  await docRef.update(data);
+}

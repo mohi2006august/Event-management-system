@@ -2,7 +2,9 @@
 
 import { useState } from 'react';
 import { Registration, Attendee } from '@/types';
-import { CheckCircle, AlertCircle, Loader2, MailWarning, Send } from 'lucide-react';
+import { CheckCircle, MailWarning, User, LogIn, Loader2 } from 'lucide-react';
+import Link from 'next/link';
+import { useAuth } from '@/hooks/useAuth';
 import { useRouter } from 'next/navigation';
 
 interface RegistrationButtonProps {
@@ -10,7 +12,9 @@ interface RegistrationButtonProps {
   isFull: boolean;
   isPastDeadline: boolean;
   initialRegistration: Registration | null;
+  session: any | null;
   attendee: Attendee | null;
+  slug: string;
 }
 
 export default function RegistrationButton({
@@ -18,111 +22,41 @@ export default function RegistrationButton({
   isFull,
   isPastDeadline,
   initialRegistration,
+  session,
   attendee,
+  slug,
 }: RegistrationButtonProps) {
-  const [registration, setRegistration] = useState<Registration | null>(initialRegistration);
+  const { signInWithGoogle } = useAuth();
   const [isPending, setIsPending] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [name, setName] = useState('');
-  const [email, setEmail] = useState('');
   const router = useRouter();
 
-  const handleRegister = async (e?: React.FormEvent) => {
-    if (e) e.preventDefault();
-    
-    if (!attendee && (!name || !email)) {
-      setError('Please provide your name and email.');
-      return;
-    }
-
-    setIsPending(true);
-    setError(null);
-
-    try {
-      const payload: any = { eventId, action: 'register' };
-      if (!attendee) {
-        payload.name = name;
-        payload.email = email;
-      }
-
-      const res = await fetch('/api/registration', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-      });
-
-      const data = await res.json();
-
-      if (!res.ok) {
-        setError(data.error || 'Failed to register');
-      } else {
-        setRegistration(data.registration);
-        router.refresh(); // Refresh the server components to update counts
-      }
-    } catch (err) {
-      setError('A network error occurred.');
-    } finally {
-      setIsPending(false);
-    }
-  };
-
-  const handleResendEmail = async () => {
-    setIsPending(true);
-    setError(null);
-
-    try {
-      const res = await fetch('/api/registration', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ eventId, action: 'resend' }),
-      });
-
-      const data = await res.json();
-
-      if (!res.ok) {
-        setError(data.error || 'Failed to resend email');
-      } else {
-        setRegistration({ ...registration!, emailStatus: 'sent' });
-      }
-    } catch (err) {
-      setError('A network error occurred.');
-    } finally {
-      setIsPending(false);
-    }
-  };
-
-  if (registration) {
+  if (initialRegistration) {
     return (
-      <div className="flex flex-col items-center p-6 bg-green-50 rounded-xl border border-green-200 w-full text-center">
-        <CheckCircle className="w-12 h-12 text-green-500 mb-3" />
-        <h3 className="text-xl font-bold text-green-900 mb-1">You're Registered!</h3>
-        <p className="text-green-700 mb-4 text-sm">
-          We've secured your spot. See you there!
-        </p>
+      <div className="flex flex-col items-center p-8 apple-glass-card rounded-[2rem] w-full text-center relative overflow-hidden">
+        <div className="absolute inset-0 bg-gradient-to-tr from-green-500/10 to-emerald-500/10 pointer-events-none"></div>
+        <div className="relative z-10 flex flex-col items-center">
+          <CheckCircle className="w-16 h-16 text-green-400 mb-4 filter drop-shadow-[0_0_10px_rgba(74,222,128,0.5)]" />
+          <h3 className="text-3xl font-black text-white mb-2 tracking-tight">You're Registered!</h3>
+          <p className="text-green-200/80 font-medium">
+            We've secured your spot. See you there!
+          </p>
 
-        {registration.emailStatus === 'failed' && (
-          <div className="mt-2 w-full p-4 bg-orange-50 border border-orange-200 rounded-lg flex flex-col items-center">
-            <MailWarning className="w-6 h-6 text-orange-500 mb-2" />
-            <p className="text-sm text-orange-800 mb-3">
-              We couldn't send your ticket email. Your registration is still valid!
-            </p>
-            <button
-              onClick={handleResendEmail}
-              disabled={isPending}
-              className="px-4 py-2 bg-orange-500 hover:bg-orange-600 text-white rounded-lg text-sm font-medium transition-colors flex items-center disabled:opacity-70"
-            >
-              {isPending ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Send className="w-4 h-4 mr-2" />}
-              Resend Ticket
-            </button>
-          </div>
-        )}
+          {initialRegistration.emailStatus === 'failed' && (
+            <div className="mt-4 w-full p-4 bg-orange-500/10 border border-orange-500/30 rounded-2xl flex flex-col items-center backdrop-blur-md">
+              <MailWarning className="w-6 h-6 text-orange-400 mb-2" />
+              <p className="text-xs text-orange-200 font-semibold text-center">
+                We couldn't send your ticket email. Your registration is still valid.
+              </p>
+            </div>
+          )}
+        </div>
       </div>
     );
   }
 
   if (isPastDeadline) {
     return (
-      <button disabled className="w-full px-8 py-4 bg-gray-200 text-gray-500 rounded-xl font-medium flex items-center justify-center cursor-not-allowed">
+      <button disabled className="w-full px-8 py-5 bg-white/5 border border-white/10 text-white/50 rounded-2xl font-bold flex items-center justify-center cursor-not-allowed apple-glass-card">
         Registration Closed
       </button>
     );
@@ -130,89 +64,71 @@ export default function RegistrationButton({
 
   if (isFull) {
     return (
-      <button disabled className="w-full px-8 py-4 bg-red-100 text-red-600 rounded-xl font-medium flex items-center justify-center cursor-not-allowed">
+      <button disabled className="w-full px-8 py-5 bg-red-500/10 border border-red-500/20 text-red-400 rounded-2xl font-bold flex items-center justify-center cursor-not-allowed apple-glass-card shadow-inner">
         Event is Full
+      </button>
+    );
+  }
+
+  if (!session) {
+    return (
+      <button
+        onClick={signInWithGoogle}
+        className="w-full px-8 py-4 bg-white/10 hover:bg-white/20 text-white rounded-2xl font-black shadow-[0_0_20px_rgba(255,255,255,0.1)] transition-all duration-300 transform hover:-translate-y-1 active:translate-y-0 active:scale-95 text-xl tracking-wide flex items-center justify-center border border-white/20"
+      >
+        <LogIn className="w-6 h-6 mr-3" />
+        Sign in to Register
       </button>
     );
   }
 
   if (!attendee) {
     return (
-      <form onSubmit={handleRegister} className="w-full flex flex-col gap-4">
-        <div>
-          <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-1">Full Name</label>
-          <input
-            id="name"
-            type="text"
-            required
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            className="w-full px-4 py-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
-            placeholder="John Doe"
-          />
-        </div>
-        <div>
-          <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">Email Address</label>
-          <input
-            id="email"
-            type="email"
-            required
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            className="w-full px-4 py-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
-            placeholder="john@example.com"
-          />
-        </div>
-        
-        <button
-          type="submit"
-          disabled={isPending}
-          className="w-full mt-2 px-8 py-4 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold shadow-md shadow-blue-200 transition-all flex items-center justify-center disabled:opacity-70 disabled:cursor-not-allowed text-lg"
-        >
-          {isPending ? (
-            <>
-              <Loader2 className="w-6 h-6 animate-spin mr-3" />
-              Processing...
-            </>
-          ) : (
-            'Complete Registration'
-          )}
-        </button>
-
-        {error && (
-          <div className="mt-2 p-3 bg-red-50 text-red-700 text-sm rounded-lg flex items-center w-full border border-red-100">
-            <AlertCircle className="w-4 h-4 mr-2 flex-shrink-0" />
-            {error}
-          </div>
-        )}
-      </form>
+      <Link
+        href="/profile"
+        className="w-full px-8 py-4 bg-gradient-to-r from-orange-600 to-pink-600 hover:from-orange-500 hover:to-pink-500 text-white rounded-2xl font-black shadow-[0_0_20px_rgba(249,115,22,0.4)] transition-all duration-300 transform hover:-translate-y-1 active:translate-y-0 active:scale-95 text-xl tracking-wide flex items-center justify-center"
+      >
+        <User className="w-6 h-6 mr-3" />
+        Complete Profile to Register
+      </Link>
     );
   }
 
+  const handleRegister = async () => {
+    setIsPending(true);
+    try {
+      const res = await fetch('/api/registration', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ eventId, action: 'register' }),
+      });
+      if (res.ok) {
+        router.refresh();
+      } else {
+        alert('Failed to register. Please try again.');
+      }
+    } catch (err) {
+      alert('Network error.');
+    } finally {
+      setIsPending(false);
+    }
+  };
+
   return (
-    <div className="w-full flex flex-col items-center">
-      <button
-        onClick={() => handleRegister()}
-        disabled={isPending}
-        className="w-full px-8 py-4 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold shadow-md shadow-blue-200 transition-all flex items-center justify-center disabled:opacity-70 disabled:cursor-not-allowed text-lg"
-      >
-        {isPending ? (
-          <>
-            <Loader2 className="w-6 h-6 animate-spin mr-3" />
-            Processing...
-          </>
-        ) : (
-          `Register Now (as ${attendee.name})`
-        )}
-      </button>
-      
-      {error && (
-        <div className="mt-4 p-3 bg-red-50 text-red-700 text-sm rounded-lg flex items-center w-full border border-red-100">
-          <AlertCircle className="w-4 h-4 mr-2 flex-shrink-0" />
-          {error}
-        </div>
+    <button
+      onClick={handleRegister}
+      disabled={isPending}
+      className="w-full px-8 py-4 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white rounded-2xl font-black shadow-[0_0_20px_rgba(168,85,247,0.4)] hover:shadow-[0_0_30px_rgba(168,85,247,0.6)] transition-all duration-300 transform hover:-translate-y-1 active:translate-y-0 active:scale-95 text-xl tracking-wide flex items-center justify-center disabled:opacity-70 disabled:cursor-not-allowed disabled:transform-none"
+    >
+      {isPending ? (
+        <>
+          <Loader2 className="w-6 h-6 animate-spin mr-3" />
+          Processing...
+        </>
+      ) : (
+        'Register Now'
       )}
-    </div>
+    </button>
   );
 }
 

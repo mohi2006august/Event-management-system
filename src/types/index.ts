@@ -8,6 +8,12 @@ export interface Event {
   registrationDeadline: number; // timestamp in ms
   capacity: number;
   registeredCount: number;
+  location: string;
+  timezone: string;
+  bannerUrl?: string;
+  category: string;
+  eventType: 'free' | 'paid';
+  visibility: 'public' | 'private';
   createdBy: string;
   createdAt: number;
   updatedAt: number;
@@ -30,5 +36,9 @@ export interface Attendee {
   id: string;
   name: string;
   email: string;
+  phone: string;
+  classSection: string;
+  college: string;
+  rollNo: string;
   createdAt: number;
 }

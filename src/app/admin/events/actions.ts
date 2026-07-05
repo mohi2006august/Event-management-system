@@ -13,6 +13,12 @@ const eventSchema = z.object({
   startsAt: z.coerce.number().min(1, 'Start time is required'),
   registrationDeadline: z.coerce.number().min(1, 'Registration deadline is required'),
   capacity: z.coerce.number().min(1, 'Capacity must be at least 1'),
+  location: z.string().min(1, 'Location is required'),
+  timezone: z.string().min(1, 'Timezone is required'),
+  bannerUrl: z.string().optional(),
+  category: z.string().min(1, 'Category is required'),
+  eventType: z.enum(['free', 'paid']),
+  visibility: z.enum(['public', 'private']),
 });
 
 export async function createEventAction(formData: FormData) {
@@ -25,14 +31,21 @@ export async function createEventAction(formData: FormData) {
     startsAt: new Date(formData.get('startsAt') as string).getTime(),
     registrationDeadline: new Date(formData.get('registrationDeadline') as string).getTime(),
     capacity: parseInt(formData.get('capacity') as string, 10),
+    location: formData.get('location') as string,
+    timezone: formData.get('timezone') as string,
+    bannerUrl: (formData.get('bannerUrl') as string) || undefined,
+    category: formData.get('category') as string,
+    eventType: formData.get('eventType') as string,
+    visibility: formData.get('visibility') as string,
   };
 
   const parsed = eventSchema.parse(data);
   
   await createEvent({
     ...parsed,
+    registeredCount: 0,
     createdBy: session.uid,
-  });
+  } as any);
 
   revalidatePath('/admin/events');
   revalidatePath('/events');
@@ -49,6 +62,12 @@ export async function updateEventAction(id: string, formData: FormData) {
     startsAt: new Date(formData.get('startsAt') as string).getTime(),
     registrationDeadline: new Date(formData.get('registrationDeadline') as string).getTime(),
     capacity: parseInt(formData.get('capacity') as string, 10),
+    location: formData.get('location') as string,
+    timezone: formData.get('timezone') as string,
+    bannerUrl: (formData.get('bannerUrl') as string) || undefined,
+    category: formData.get('category') as string,
+    eventType: formData.get('eventType') as string,
+    visibility: formData.get('visibility') as string,
   };
 
   const parsed = eventSchema.parse(data);
