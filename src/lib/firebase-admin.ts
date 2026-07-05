@@ -9,11 +9,18 @@ if (!getApps().length) {
 
   if (projectId && clientEmail && privateKey) {
     try {
+      // Clean the private key:
+      // 1. Remove surrounding quotes if they were accidentally copy-pasted
+      // 2. Replace escaped \n with actual newlines
+      const cleanedPrivateKey = privateKey
+        .replace(/(^"|"$)/g, '')
+        .replace(/\\n/g, '\n');
+
       initializeApp({
         credential: cert({
           projectId,
           clientEmail,
-          privateKey: privateKey.replace(/\\n/g, '\n'),
+          privateKey: cleanedPrivateKey,
         }),
       });
     } catch (error) {
